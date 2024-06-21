@@ -1,0 +1,116 @@
+const canvas = document.getElementById('gameCanvas');
+const context = canvas.getContext('2d');
+
+const bird = {
+    x: 50,
+    y: 150,
+    width: 20,
+    height: 20,
+    gravity: 0.6,
+    lift: -15,
+    velocity: 0,
+    
+    show: function() {
+        context.fillStyle = "#FF0";
+        context.fillRect(this.x, this.y, this.width, this.height);
+    },
+    
+    update: function() {
+        this.velocity += this.gravity;
+        this.y += this.velocity;
+        
+        if (this.y > canvas.height - this.height) {
+            this.y = canvas.height - this.height;
+            this.velocity = 0;
+        }
+        
+        if (this.y < 0) {
+            this.y = 0;
+            this.velocity = 0;
+        }
+    },
+    
+    up: function() {
+        this.velocity += this.lift;
+    }
+};
+
+const pipes = [];
+const pipeWidth = 20;
+const pipeGap = 100;
+const pipeInterval = 90; // frames
+let frameCount = 0;
+
+function Pipe() {
+    this.top = Math.random() * (canvas.height / 2);
+    this.bottom = canvas.height - (this.top + pipeGap);
+    this.x = canvas.width;
+    this.width = pipeWidth;
+    this.speed = 2;
+    
+    this.show = function() {
+        context.fillStyle = "#0F0";
+        context.fillRect(this.x, 0, this.width, this.top);
+        context.fillRect(this.x, canvas.height - this.bottom, this.width, this.bottom);
+    };
+    
+    this.update = function() {
+        this.x -= this.speed;
+    };
+    
+    this.offscreen = function() {
+        return this.x < -this.width;
+    };
+    
+    this.hits = function(bird) {
+        if (bird.y < this.top || bird.y > canvas.height - this.bottom) {
+            if (bird.x > this.x && bird.x < this.x + this.width) {
+                return true;
+            }
+        }
+        return false;
+    };
+}
+
+function draw() {
+    context.clearRect(0, 0, canvas.width, canvas.height);
+    
+    bird.show();
+    bird.update();
+    
+    if (frameCount % pipeInterval === 0) {
+        pipes.push(new Pipe());
+    }
+    
+    for (let i = pipes.length - 1; i >= 0; i--) {
+        pipes[i].show();
+        pipes[i].update();
+        
+        if (pipes[i].hits(bird)) {
+            console.log("HIT");
+            resetGame();
+        }
+        
+        if (pipes[i].offscreen()) {
+            pipes.splice(i, 1);
+        }
+    }
+    
+    frameCount++;
+    requestAnimationFrame(draw);
+}
+
+function resetGame() {
+    bird.y = 150;
+    bird.velocity = 0;
+    pipes.length = 0;
+    frameCount = 0;
+}
+
+document.addEventListener('keydown', function(event) {
+    if (event.code === 'Space') {
+        bird.up();
+    }
+});
+
+draw();
